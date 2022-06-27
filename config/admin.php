@@ -319,10 +319,10 @@ return [
     */
     'layout' => [
         // default, blue, blue-light, green,qing,kelanyin
-        'color' => 'kelanyin',
+        'color' => 'green',
 
         // sidebar-separate
-        'body_class' => [],
+        'body_class' => '',
 
         'horizontal_menu' => false,
 

@@ -4,6 +4,7 @@ namespace App\Admin\Controllers;
 
 use App\Admin\Repositories\Blog;
 use App\Models\Cate;
+use App\Models\Tag;
 use Dcat\Admin\Form;
 use Dcat\Admin\Grid;
 use Dcat\Admin\Show;
@@ -22,21 +23,23 @@ class BlogController extends AdminController
      */
     protected function grid()
     {
-        return Grid::make(new Blog(), function (Grid $grid) {
+        return Grid::make(Blog::with(['adminuser','cate','tag']), function (Grid $grid) {
             $grid->column('id')->sortable();
-            $grid->column('cate_id');
-            $grid->column('title');
-            $grid->column('imgs');
+            $grid->column('cate.name','所属分类');
+            $grid->column('tag','博客标签')->pluck('name')->label('primary', 3);
+            $grid->column('title')->editable();
+            $grid->column('imgs')->image('',100,100);
             $grid->column('views');
-            $grid->column('author_id');
-            $grid->column('is_show');
-            $grid->column('created_at');
-            $grid->column('updated_at')->sortable();
-
-            $grid->filter(function (Grid\Filter $filter) {
-                $filter->equal('id');
-
-            });
+            $grid->column('adminuser.username',"作者");
+            $grid->column('is_show')->switch('', true);
+            $grid->column('created_at')->sortable();
+            $grid->showToolbar();
+            $grid->quickSearch('title')->placeholder('快速搜索标题...');
+//            $grid->filter(function (Grid\Filter $filter) {
+//                $filter->panel(); //过滤器在上端。默认为rightside
+//                $filter->expand(); //展开过滤器
+//                $filter->equal('id')->width(3);
+//            });
         });
     }
 
@@ -70,21 +73,29 @@ class BlogController extends AdminController
      */
     protected function form()
     {
-        return Form::make(new Blog('cate'), function (Form $form) {
+        return Form::make(Blog::with(['cate','tag']), function (Form $form) {
 //            if ($form->isCreating()) {
                 //新增
                 $form->display('id');
                 $form->select('cate_id','博客分类')->options(Cate::pluck('name','id'))->required();
                 $form->text('title','博客标题')->required();
                 $form->editor('detail','博客详情');
+                $form->multipleSelect('tag','博客标签')
+                ->options(function () {
+                    $tagModel = Tag::class;
+                    return $tagModel::all()->pluck('name', 'id');
+                })
+                ->customFormat(function ($v) {
+                    return array_column($v, 'id');
+                });
                 $form->image('imgs','封面图')->uniqueName()->autoUpload();
                 $form->hidden('views')->value('0');
                 $form->hidden('author_id')->value(Auth::guard('admin')->user()->id);
-                $states = [
+                $status = [
                     'on'  => ['value' => 1, 'text' => '显示', 'color' => 'success'],
                     'off' => ['value' => 0, 'text' => '隐藏', 'color' => 'danger'],
                 ];
-                $form->switch('is_show','是否显示')->options($states);
+                $form->switch('is_show','是否显示')->options($status);
                 $form->display('created_at')->value(date('Y-m-d H:i:s'));
                 $form->display('updated_at')->value(date('Y-m-d H:i:s'));
 //            }else{
